@@ -1,8 +1,4 @@
-Here's a **detailed GitHub README.md** document for your project:
 
----
-
-```markdown
 # NeXonDDoSProtection
 
 **NeXonDDoSProtection** is a robust and efficient DDoS protection system built in C++ designed to safeguard web applications from malicious traffic. It combines **rate-limiting**, **reverse proxying**, and **IP blocking** to detect and mitigate excessive or harmful requests in real-time. This project supports both **HTTP** and **HTTPS** traffic and is fully configurable through an `.env` file.
