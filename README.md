@@ -55,7 +55,7 @@ sudo apt-get install g++ libcurl4-openssl-dev
    TARGET_URL=https://yoursite.com
    RATE_LIMIT=100
    TIME_WINDOW=10
-   PROXY_PORT=8080
+   PROXY_PORT=80
    BLOCK_DURATION=60
    ```
 
