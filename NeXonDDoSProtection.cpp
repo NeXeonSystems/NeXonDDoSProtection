@@ -15,12 +15,18 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <cstdlib>
+#include <regex>
 
 std::unordered_map<std::string, int> requestCounts;
 std::unordered_map<std::string, std::time_t> blockedClients;
 std::mutex requestMutex;
 std::string targetUrl;
 int rateLimit, timeWindow, proxyPort, blockDuration;
+
+void blockIPWithIptables(const std::string& ip) {
+    std::string cmd = "sudo iptables -A INPUT -s " + ip + " -j DROP";
+    system(cmd.c_str());
+}
 
 void loadEnv() {
     std::ifstream envFile(".env");
@@ -55,23 +61,35 @@ void forwardRequest(const std::string& clientRequest, int clientSocket) {
     curl_easy_cleanup(curl);
 }
 
+void logAttack(const std::string& clientIp) {
+    std::ofstream logFile("ddos_attacks.log", std::ios_base::app);
+    logFile << "Detected DDoS attempt from IP: " << clientIp 
+            << " at " << std::time(nullptr) << std::endl;
+}
+
 void handleClient(int clientSocket, sockaddr_in clientAddr) {
     char buffer[8192];
     std::string clientIp = inet_ntoa(clientAddr.sin_addr);
+    
     {
         std::lock_guard<std::mutex> lock(requestMutex);
         if (blockedClients.count(clientIp) && std::time(0) - blockedClients[clientIp] < blockDuration) {
             close(clientSocket);
             return;
         }
+        
         auto& count = requestCounts[clientIp];
         count++;
+        
         if (count > rateLimit) {
             blockedClients[clientIp] = std::time(0);
+            logAttack(clientIp);
+            blockIPWithIptables(clientIp);
             close(clientSocket);
             return;
         }
     }
+    
     int bytesReceived = recv(clientSocket, buffer, sizeof(buffer), 0);
     if (bytesReceived > 0) forwardRequest(std::string(buffer, bytesReceived), clientSocket);
     close(clientSocket);
